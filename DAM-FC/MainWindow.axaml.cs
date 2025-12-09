@@ -1,4 +1,4 @@
-//DAMFC-GUI v 1.20
+//DAMFC-GUI v 1.21
 
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -13,7 +13,7 @@ namespace DAFC_GUI;
 
 public partial class MainWindow : Window
 {
-    private static readonly string GuiVersion = "1.20";
+    private static readonly string GuiVersion = "1.21";
     
     private readonly ConfigManager _configManager = new ConfigManager();
     public ConfigManager.ConfigSettings CurrentConfig;
@@ -146,17 +146,17 @@ public partial class MainWindow : Window
     {
         var config = new
         {
-            min_speed = (int)MinSpeedInput.Value,
-            max_speed = (int)MaxSpeedInput.Value,
-            dynamic_mode = DynamicFanControlCheckBox.IsChecked.Value,
+            min_speed = (int)(MinSpeedInput.Value ?? 640),
+            max_speed = (int)(MaxSpeedInput.Value ?? 2560),
+            dynamic_mode = DynamicFanControlCheckBox.IsChecked ?? true,
             temp_steps = new[]
             {
-                new { temperature = Convert.ToInt32(T1TempInput.Text), speed = Convert.ToInt32(T1Slider.Value) },
-                new { temperature = Convert.ToInt32(T2TempInput.Text), speed = Convert.ToInt32(T2Slider.Value) },
-                new { temperature = Convert.ToInt32(T3TempInput.Text), speed = Convert.ToInt32(T3Slider.Value) },
-                new { temperature = Convert.ToInt32(T4TempInput.Text), speed = Convert.ToInt32(T4Slider.Value) },
-                new { temperature = Convert.ToInt32(T5TempInput.Text), speed = Convert.ToInt32(T5Slider.Value) },
-                new { temperature = Convert.ToInt32(T6TempInput.Text), speed = Convert.ToInt32(T6Slider.Value) }
+                new { temperature = ParseIntSafe(T1TempInput.Text, 50), speed = (int)T1Slider.Value },
+                new { temperature = ParseIntSafe(T2TempInput.Text, 60), speed = (int)T2Slider.Value },
+                new { temperature = ParseIntSafe(T3TempInput.Text, 70), speed = (int)T3Slider.Value },
+                new { temperature = ParseIntSafe(T4TempInput.Text, 80), speed = (int)T4Slider.Value },
+                new { temperature = ParseIntSafe(T5TempInput.Text, 85), speed = (int)T5Slider.Value },
+                new { temperature = ParseIntSafe(T6TempInput.Text, 90), speed = (int)T6Slider.Value }
             }
         };
 
@@ -167,6 +167,13 @@ public partial class MainWindow : Window
         };
     
         SendCommand(command);
+    }
+
+    private static int ParseIntSafe(string? text, int defaultValue)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return defaultValue;
+        return int.TryParse(text, out int result) ? result : defaultValue;
     }
 
     private void SendCommand(object command)

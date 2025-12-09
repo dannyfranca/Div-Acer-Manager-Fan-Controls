@@ -1,5 +1,6 @@
-# DAMFC_Daemon v0.8.6
+# DAMFC_Daemon v0.8.7
 # Current Daemon, Will be updated to support Battery Charge limit and maybe Battery Calibration
+# Fixed: Sleep moved outside dynamic mode check to prevent CPU spin
 
 import os
 import json
@@ -13,86 +14,87 @@ import sys
 from DriverManager import DriverManager
 import HardwareStatus
 
+
 class FanControlDaemon:
 
-    daemonVersion = "0.8.6"
+    daemonVersion = "0.8.7"
 
-    def __init__(self, config_path='/var/lib/acer_fan_control/config.json'):
+    def __init__(self, config_path="/var/lib/acer_fan_control/config.json"):
         # Setup logging with more detailed output
         self.setup_logging()
-        
+
         logging.info(f"Initializing DAM Daemon v{self.daemonVersion}")
         logging.info(f"Config path: {config_path}")
-        
+
         self.config_path = config_path
         self.config = self.load_config()
         self.running = False
-        
+
         # Initialize dynamic mode from config
-        self.dynamicModeEnabled = self.config.get('dynamic_mode', True)
+        self.dynamicModeEnabled = self.config.get("dynamic_mode", True)
         logging.info(f"Dynamic mode initialized to: {self.dynamicModeEnabled}")
-    
+
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
 
     def setup_logging(self):
         # Ensure log directory exists
-        log_dir = '/var/log/Div_Acer_Manager_Logs'
+        log_dir = "/var/log/Div_Acer_Manager_Logs"
         os.makedirs(log_dir, exist_ok=True)
-        
+
         # Configure logging with more detailed format
         logging.basicConfig(
-            filename=os.path.join(log_dir, 'fan_control_daemon.log'), 
+            filename=os.path.join(log_dir, "fan_control_daemon.log"),
             level=logging.DEBUG,
-            format='%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            format="%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
-        
+
         # Add console handler for additional visibility
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         logging.getLogger().addHandler(console_handler)
-        
+
         logging.info("Logging system initialized")
 
     def load_config(self):
         logging.info(f"Attempting to load configuration from {self.config_path}")
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, "r") as f:
                 config = json.load(f)
                 logging.info("Configuration loaded successfully")
                 return config
         except FileNotFoundError:
             logging.warning("No configuration file found. Using default settings.")
             return {
-                'min_speed': 640,
-                'max_speed': 2560,
-                'dynamic_mode': True,
-                'temp_steps': [
-                    {'temperature': 50, 'speed': 1024},
-                    {'temperature': 70, 'speed': 1536},
-                    {'temperature': 80, 'speed': 2048}
-                ]
+                "min_speed": 640,
+                "max_speed": 2560,
+                "dynamic_mode": True,
+                "temp_steps": [
+                    {"temperature": 50, "speed": 1024},
+                    {"temperature": 70, "speed": 1536},
+                    {"temperature": 80, "speed": 2048},
+                ],
             }
         except json.JSONDecodeError:
             logging.error("Error decoding configuration file. Using default settings.")
             return {
-                'min_speed': 640,
-                'max_speed': 2560,
-                'dynamic_mode': True,
-                'temp_steps': [
-                    {'temperature': 50, 'speed': 1024},
-                    {'temperature': 70, 'speed': 1536},
-                    {'temperature': 80, 'speed': 2048}
-                ]
+                "min_speed": 640,
+                "max_speed": 2560,
+                "dynamic_mode": True,
+                "temp_steps": [
+                    {"temperature": 50, "speed": 1024},
+                    {"temperature": 70, "speed": 1536},
+                    {"temperature": 80, "speed": 2048},
+                ],
             }
 
     def save_config(self):
         logging.info("Saving current configuration")
         try:
             os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-            with open(self.config_path, 'w') as f:
+            with open(self.config_path, "w") as f:
                 json.dump(self.config, f, indent=4)
             logging.info("Configuration saved successfully")
         except Exception as e:
@@ -101,7 +103,7 @@ class FanControlDaemon:
     def get_cpu_temp(self):
         try:
             return int(HardwareStatus.get_cpu_temp())
-            
+
         except Exception as e:
             logging.error(f"Error reading CPU temperature: {e}")
             return 0
@@ -115,71 +117,75 @@ class FanControlDaemon:
         except Exception as e:
             logging.error(f"Could not read GPU temperature: {e}")
             return 0
-    
+
     def set_fan_speed(self, fan_number, speed):
         try:
             if 0 < int(fan_number) < 3:
-                fan_file = f'/dev/fan{fan_number}'
-    
+                fan_file = f"/dev/fan{fan_number}"
+
                 # Validate speed is within acceptable range
-                if speed < self.config.get('min_speed', 640):
-                    speed = self.config.get('min_speed', 640)
+                if speed < self.config.get("min_speed", 640):
+                    speed = self.config.get("min_speed", 640)
                     logging.warning(f"Speed adjusted to minimum: {speed}")
-    
-                if speed > self.config.get('max_speed', 2560):
-                    speed = self.config.get('max_speed', 2560)
+
+                if speed > self.config.get("max_speed", 2560):
+                    speed = self.config.get("max_speed", 2560)
                     logging.warning(f"Speed adjusted to maximum: {speed}")
-    
+
                 # Direct write to the fan device file
-                with open(fan_file, 'w') as f:
-                    f.write(str(speed) + '\n')
+                with open(fan_file, "w") as f:
+                    f.write(str(speed) + "\n")
                 logging.info(f"Successfully set Fan {fan_number} to speed {speed}")
             else:
                 logging.error(f"Invalid fan number: {fan_number}")
         except PermissionError:
-            logging.error(f"Permission denied when setting fan {fan_number} speed. Run with sudo?")
+            logging.error(
+                f"Permission denied when setting fan {fan_number} speed. Run with sudo?"
+            )
         except FileNotFoundError:
             logging.error(f"Fan control file not found: /dev/fan{fan_number}")
         except Exception as e:
             logging.error(f"Could not set fan speed: {e}")
-            
-    def dynamic_fan_control(self):
 
+    def dynamic_fan_control(self):
         logging.info("Starting dynamic fan control thread")
         while self.running:
-            if self.dynamicModeEnabled == True:
-                # try:
+            if self.dynamicModeEnabled:
                 cpu_temp = self.get_cpu_temp()
                 gpu_temp = self.get_gpu_temp()
 
-                logging.debug(f"Current temperatures - CPU: {cpu_temp}°C, GPU: {gpu_temp}°C")
+                logging.debug(
+                    f"Current temperatures - CPU: {cpu_temp}°C, GPU: {gpu_temp}°C"
+                )
 
-                # Dynamic fan speed logic
                 max_temp = max(cpu_temp, gpu_temp)
-                
-                for step in sorted(self.config.get('temp_steps', []), key=lambda x: x['temperature'], reverse=True):
-                    if max_temp >= step['temperature']:
-                        logging.info(f"Setting fans to {step['speed']} due to temperature {max_temp}°C")
-                        self.set_fan_speed(1, step['speed'])  # CPU Fan
-                        self.set_fan_speed(2, step['speed'])  # GPU Fan
+
+                for step in sorted(
+                    self.config.get("temp_steps", []),
+                    key=lambda x: x["temperature"],
+                    reverse=True,
+                ):
+                    if max_temp >= step["temperature"]:
+                        logging.info(
+                            f"Setting fans to {step['speed']} due to temperature {max_temp}°C"
+                        )
+                        self.set_fan_speed(1, step["speed"])
+                        self.set_fan_speed(2, step["speed"])
                         break
 
-                # except Exception as e:
-                #     logging.error(f"Error in dynamic fan control: {e}")
+            time.sleep(5)
 
-                time.sleep(5)  # Check every 5 seconds
-        
         logging.info("Dynamic fan control thread stopped")
 
     def start(self):
         logging.info(f"Starting DAM_FC Daemon v{self.daemonVersion}")
         self.running = True
-        
+
         # Start dynamic fan control in a separate thread
         fan_thread = threading.Thread(target=self.dynamic_fan_control)
         fan_thread.daemon = True  # Allow thread to be killed when main process exits
         fan_thread.start()
-        
+
         logging.info("Daemon started successfully")
 
     def shutdown(self, signum=None, frame=None):
@@ -190,7 +196,7 @@ class FanControlDaemon:
 
     def handle_socket_commands(self):
         # Unix domain socket for IPC with C# GUI
-        socket_path = '/var/run/fan_control_daemon.sock'
+        socket_path = "/var/run/fan_control_daemon.sock"
 
         logging.info(f"Preparing Unix socket at {socket_path}")
 
@@ -230,55 +236,56 @@ class FanControlDaemon:
             except Exception as e:
                 logging.error(f"Socket connection error: {e}")
                 time.sleep(1)  # Prevent tight error loop
-    
+
     def process_command(self, command):
         logging.info(f"Processing command: {command}")
-        
-        try:
-            if command['type'] == 'set_fan_speed':
-                self.set_fan_speed(command['fan'], command['speed'])
 
-            elif command['type'] == 'update_config':
+        try:
+            if command["type"] == "set_fan_speed":
+                self.set_fan_speed(command["fan"], command["speed"])
+
+            elif command["type"] == "update_config":
                 logging.info("Updating configuration")
-                self.config = command['config']
+                self.config = command["config"]
                 self.save_config()
 
-            elif command['type'] == 'get_temp':
+            elif command["type"] == "get_temp":
                 return {
-                    'cpu_temp': self.get_cpu_temp(),
-                    'gpu_temp': self.get_gpu_temp()
+                    "cpu_temp": self.get_cpu_temp(),
+                    "gpu_temp": self.get_gpu_temp(),
                 }
-            
-            elif command['type'] == 'set_dynamic_mode':
-                self.dynamicModeEnabled = command['toActivate']
+
+            elif command["type"] == "set_dynamic_mode":
+                self.dynamicModeEnabled = command["toActivate"]
                 logging.info(f"Dynamic mode set to: {self.dynamicModeEnabled}")
-                   
-            elif command['type'] == 'get_driver_status':
+
+            elif command["type"] == "get_driver_status":
                 return DriverManager.get_driver_status()
-            
-            elif command['type'] == 'clean_compiled_drivers':
+
+            elif command["type"] == "clean_compiled_drivers":
                 DriverManager.clean_compiled_drivers()
-            
-            elif command['type'] == 'reload_complied_drivers':
+
+            elif command["type"] == "reload_complied_drivers":
                 DriverManager.remove_driver()
                 DriverManager.remove_fan_control_files()
                 DriverManager.ensure_driver_loaded()
 
-            elif command['type'] == 'unload_drivers':
+            elif command["type"] == "unload_drivers":
                 DriverManager.remove_driver()
-            
-            elif command['type'] == 'compile_drivers':
+
+            elif command["type"] == "compile_drivers":
                 DriverManager.compile_driver()
-                
-            elif command['type'] == 'load_drivers':
+
+            elif command["type"] == "load_drivers":
                 DriverManager.load_driver()
-                
+
             else:
                 logging.warning(f"Unknown command type: {command['type']}")
         except KeyError as e:
             logging.error(f"Missing key in command: {e}")
         except Exception as e:
             logging.error(f"Error processing command: {e}")
+
 
 def main():
     daemon = FanControlDaemon()
@@ -287,5 +294,6 @@ def main():
     daemon.start()
     daemon.handle_socket_commands()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

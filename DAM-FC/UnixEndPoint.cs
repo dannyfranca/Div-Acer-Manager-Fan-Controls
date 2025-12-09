@@ -7,12 +7,17 @@ namespace DAFC_GUI
 {
     public class UnixEndPoint : EndPoint
     {
+        private const int MaxPathLength = 106;
         private string _filename;
 
         public UnixEndPoint(string filename)
         {
             if (filename == null)
-                throw new ArgumentNullException("filename");
+                throw new ArgumentNullException(nameof(filename));
+
+            byte[] bytes = Encoding.UTF8.GetBytes(filename);
+            if (bytes.Length > MaxPathLength)
+                throw new ArgumentException($"Socket path too long. Maximum is {MaxPathLength} bytes, got {bytes.Length} bytes.", nameof(filename));
 
             _filename = filename;
         }
