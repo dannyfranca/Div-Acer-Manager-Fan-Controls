@@ -1,0 +1,17 @@
+[Unit]
+Description=DAM Fan Control Daemon for Acer Nitro/Predator
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/dam-fan-controls/DAMFC_daemon
+WorkingDirectory=/opt/dam-fan-controls
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
