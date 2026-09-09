@@ -1,0 +1,72 @@
+{
+  "captured_on": "2026-09-09",
+  "kernel": "7.2.2-1-cachyos",
+  "machine": {
+    "sys_vendor": "Acer",
+    "product_name": "Predator PT315-53",
+    "product_version": "V1.17",
+    "board_name": "Civic_TLS",
+    "bios_version": "V1.17"
+  },
+  "hwmon": [
+    {
+      "path": "/sys/class/hwmon/hwmon0",
+      "name": "ACAD",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon1",
+      "name": "acpitz",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon2",
+      "name": "BAT1",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon3",
+      "name": "nvme",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon4",
+      "name": "nvme",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon5",
+      "name": "coretemp",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon6",
+      "name": "iwlwifi_1",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    },
+    {
+      "path": "/sys/class/hwmon/hwmon7",
+      "name": "ucsi_source_psy_USBC000:001",
+      "fan_attributes": [],
+      "pwm_attributes": []
+    }
+  ],
+  "gaming_wmi_devices": [
+    {
+      "path": "/sys/bus/wmi/devices/7A4DDFE7-5B5D-40B4-8595-4408E0CC7F56-8",
+      "driver": null
+    }
+  ],
+  "loaded_fan_related_modules": [
+    "acer_wmi",
+    "acer_wireless"
+  ],
+  "running_kernel_build_directory_exists": true
+}
