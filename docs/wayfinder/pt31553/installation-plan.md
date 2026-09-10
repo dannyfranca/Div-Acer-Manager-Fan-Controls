@@ -1,6 +1,6 @@
 # PT315-53 temperature-based fan control: implementation and installation plan
 
-Status: Ready for installation-readiness review. Research is complete; implementation, compilation and live installation checks remain to execute.
+Status: Planning accepted on 2026-09-10, subject to keeping the solution simple. Implementation, compilation and live installation checks remain to execute.
 
 ## Intended result
 
@@ -13,7 +13,7 @@ The [wayfinder map](https://github.com/dannyfranca/Div-Acer-Manager-Fan-Controls
 - Confirmed target: Acer Predator PT315-53, Civic_TLS, BIOS V1.17; CachyOS 7.2.2-1 with matching headers.
 - Stock acer_wmi is loaded but exposes no fan/PWM endpoints. The two earlier DMI patches fit the current source; firmware compatibility has not been demonstrated.
 - User accepted the small driver adaptation plus CoolerControl and requested a plan covering all steps through installation.
-- Initial curve preference is balanced cooling/noise unless Danny selects another preference. Actual temperature/duty points depend on observed firmware behavior and will be chosen during supervised setup.
+- Danny accepted balanced cooling/noise and explicit driver rebuilds, provided they do not add much complexity. Keep existing CoolerControl, version-specific module packages and only the required transition helper; defer DKMS automation. Actual temperature/duty points depend on observed firmware behavior and will be chosen during supervised setup.
 - Installation must re-read current machine/package/kernel facts. A kernel update can invalidate the researched source and build assumptions.
 - Current prerequisites: repository metadata is inconsistent with installed versions, NVIDIA reports "GPU requires reset" rather than a valid temperature, and the installed recovery LTS has not yet been boot-tested.
 - UEFI Secure Boot is enabled but the running kernel has module-signature enforcement off and no lockdown. Keep Secure Boot enabled; recheck admission policy before loading.
@@ -54,7 +54,7 @@ Evidence and full contracts: [controller integration research](../../research/pt
 1. **Use the inspected release.** Candidate is `coolercontrold` 5.0.0-1, with its embedded local Web UI. A desktop window is optional. Use pacman signature verification; re-audit the unit/lifecycle behavior if the installed version differs. The inspected package does not auto-start via its own hooks, but verify active/enabled state after installation and keep it inactive during driver checks.
 2. **Build only the missing integration.** Package a finite `session` helper, `/etc/pt31553-fan-control/device.toml`, a CoolerControl service drop-in, a sleep-preparation oneshot and dependencies for the four systemd sleep engines. Add fixture tests and an ownership/removal manifest. These proposed artifacts handle transitions; CoolerControl remains the only running fan controller.
 3. **Define restoration precisely.** Helper commands cover guard, prepare-start, restore-auto, prepare/finish-sleep and explicit recover. Discover the exact Acer device each time, never by saved hwmon number. Before startup, establish and read back `pwmN_enable=2` on both channels and require fresh selected sensors. After daemon exit, attempt both channels even if one fails; verify Auto before permitting restart. Keep failures visible and latched. Explicit recover runs with the controller stopped, clears a fault only after successful verification, and never starts curves by itself.
-4. **Handle stock/recovery boot correctly.** Guard must skip unsupported stock/LTS boots without touching fans. Because systemd runs post-stop cleanup even after a condition skips startup, use an ownership marker to distinguish this clean skip from fan endpoints disappearing after control began. The latter is a fault, not a reason to silently skip cleanup.
+4. **Handle stock/recovery boot correctly.** Guard must skip unsupported stock/LTS boots without touching fans. Because systemd runs post-stop cleanup even after a condition skips startup, use an ownership marker to distinguish this clean skip from fan endpoints disappearing after control began. The latter is a fault, not a reason to silently skip cleanup. Sleep preparation must also succeed without fan writes or absent-endpoint checks on clean unsupported boots with no current-boot ownership or restoration fault; its finish action must not start CoolerControl. Prior ownership, lost endpoints after acquisition, or a restoration fault retain the recovery requirement and block sleep. Cover these branches in fixtures for all four sleep engines.
 5. **Keep upstream supervision.** Preserve the inspected service's notify protocol, 30-second watchdog and restart behavior. Add verified Auto restoration through `ExecStartPre`/`ExecStopPost`; no second watchdog daemon. Measure actual recovery delay, including process termination and helper execution, during acceptance.
 6. **Order sleep explicitly.** Required preparation creates a sleep marker, remembers prior controller activity, stops the daemon synchronously and verifies both fans Auto before the sleep engine starts. Failed preparation blocks sleep. Resume clears the sleep marker and restarts only a previously active controller through fresh-sensor checks. Cover cancelled/failed sleep and preserve any restoration fault latch.
 7. **Test the integration before hardware use.** Fixtures cover both-fan attempts, readback mismatch/write failure, wrong/missing device, stale sensors, startup skip/post-stop behavior, lost active endpoints, explicit fault recovery, and cancelled sleep/resume. Check units with `systemd-analyze verify` and simulated ordering. Do not inject hardware failures by removing the driver during Custom mode.
@@ -92,11 +92,11 @@ Permanent uninstall follows the responsive rollback order above. Disable curve b
 - Provide normal local administrative access when privileged installation/boot-file inspection begins.
 - Save work and personally select/verify the recovery boot and planned reboots.
 - Stay at the laptop for first driver admission, live fan-response/curve tests and disruptive lifecycle checks.
-- Judge acceptable noise during initial tuning; balanced is the proposed default. The agent can prepare packages, helpers, fixtures, settings and logs.
+- Judge acceptable noise during initial tuning; balanced is the accepted starting preference. The agent can prepare packages, helpers, fixtures, settings and logs.
 
 ## Handoff
 
-The next decision is [Review the complete installation plan and remaining machine-dependent choices](https://github.com/dannyfranca/Div-Acer-Manager-Fan-Controls/issues/8). Review the explicit kernel-update maintenance tradeoff and proposed initial curve preference. Hardware outcomes are execution gates already covered by this plan; successful firmware behavior is not assumed. Once the plan is accepted, implement the listed package/helper artifacts and follow the ordered stages.
+Danny accepted the remaining choices on 2026-09-10 in [Review the complete installation plan and remaining machine-dependent choices](https://github.com/dannyfranca/Div-Acer-Manager-Fan-Controls/issues/8), with simplicity as a constraint. The next session implements the listed package/helper artifacts and follows the ordered stages. Start with current package/sensor/recovery facts; no installation or hardware stage has passed yet. Exact curve points and firmware outcomes are execution gates already covered by this plan. If contradictory evidence requires a substantially more complex design, capture the observed blocker and revisit that decision before expanding scope.
 
 ## Completion criteria
 
