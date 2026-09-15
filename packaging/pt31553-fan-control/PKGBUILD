@@ -1,19 +1,23 @@
 pkgname=pt31553-fan-control
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Finite verified firmware Auto restoration for qualified PT315-53 CoolerControl sessions'
 arch=('any')
 license=('GPL-3.0-or-later')
 depends=('python>=3.11' 'systemd' 'coolercontrold=5.0.0-1' 'nvidia-utils')
 backup=('etc/pt31553-fan-control/device.toml')
-source=('session.py' 'device.toml' 'pt31553.conf' 'ownership.txt' 'README.md' 'test_session.py' 'test_unit.py' 'coolercontrold.service')
-sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+source=('session.py' 'device.toml' 'pt31553.conf' 'ownership.txt' 'README.md' 'test_session.py' 'test_unit.py' 'coolercontrold.service' 'test_sleep.py' 'pt31553-fan-sleep.service' 'sleep-engine.conf')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
 
 check() {
     python3 -m unittest discover -s . -v
 }
 
 package() {
+    install -Dm644 pt31553-fan-sleep.service "$pkgdir/usr/lib/systemd/system/pt31553-fan-sleep.service"
+    for engine in suspend hibernate hybrid-sleep suspend-then-hibernate; do
+        install -Dm644 sleep-engine.conf "$pkgdir/usr/lib/systemd/system/systemd-$engine.service.d/pt31553.conf"
+    done
     install -Dm755 session.py "$pkgdir/usr/lib/pt31553-fan-control/session"
     install -Dm600 device.toml "$pkgdir/etc/pt31553-fan-control/device.toml"
     install -Dm644 pt31553.conf "$pkgdir/usr/lib/systemd/system/coolercontrold.service.d/pt31553.conf"
