@@ -1,0 +1,12 @@
+[Unit]
+Description=Verify PT315-53 firmware fan ownership before sleep
+DefaultDependencies=no
+StopWhenUnneeded=yes
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/pt31553-fan-control/session prepare-sleep
+ExecStopPost=/usr/lib/pt31553-fan-control/session finish-sleep
+TimeoutStartSec=40
+TimeoutStopSec=10
