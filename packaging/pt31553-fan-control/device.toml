@@ -1,0 +1,20 @@
+# Remains disabled until attended driver/PWM qualification fills these identities.
+qualified = false
+kernel_release = ""
+# SHA-256 of the LOADED candidate's .note.gnu.build-id bytes, not modinfo on disk.
+module_note_sha256 = ""
+device_path = ""
+hwmon_name = ""
+channels = ["pwm1_enable", "pwm2_enable"]
+
+[cpu]
+device_path = ""
+label = "Package id 0"
+# Replace bounds using observed component limits before qualification.
+min_c = 0
+max_c = 0
+
+[gpu]
+uuid = ""
+min_c = 0
+max_c = 0
