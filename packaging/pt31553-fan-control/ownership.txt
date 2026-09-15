@@ -2,6 +2,11 @@ Package-owned (pacman inventory is authoritative):
 /usr/lib/pt31553-fan-control/session
 /etc/pt31553-fan-control/device.toml (configuration backup)
 /usr/lib/systemd/system/coolercontrold.service.d/pt31553.conf
+/usr/lib/systemd/system/pt31553-fan-sleep.service
+/usr/lib/systemd/system/systemd-suspend.service.d/pt31553.conf
+/usr/lib/systemd/system/systemd-hibernate.service.d/pt31553.conf
+/usr/lib/systemd/system/systemd-hybrid-sleep.service.d/pt31553.conf
+/usr/lib/systemd/system/systemd-suspend-then-hibernate.service.d/pt31553.conf
 /usr/share/doc/pt31553-fan-control/ownership.txt
 /usr/share/doc/pt31553-fan-control/README.md
 
@@ -9,8 +14,9 @@ Runtime-owned (root-only, boot-scoped; never manually delete to clear a fault):
 /run/pt31553-fan-control/lock
 /run/pt31553-fan-control/owner.json
 /run/pt31553-fan-control/fault.json
+/run/pt31553-fan-control/sleep.json
 
-Removal: stop/disable CoolerControl with helper and candidate still installed;
+Removal: wait for any sleep transition to finish; stop/disable CoolerControl with helper and candidate still installed;
 verify both fans Auto, resolve faults through session recover, archive settings;
 remove this integration, then the candidate driver through its stock rollback.
 Preserve unrelated controller, kernel, signing and boot assets.

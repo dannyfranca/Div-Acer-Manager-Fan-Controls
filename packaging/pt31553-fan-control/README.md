@@ -1,9 +1,9 @@
 # PT315-53 CoolerControl transitions
 
-Implements issue #12. No installation or hardware qualification is implied by the fixture results.
+Implements issues #12 and #13. No installation or hardware qualification is implied by the fixture results.
 This is a finite Python helper, not a replacement curve controller. The default
-configuration refuses startup. Sleep integration is tracked separately in #13;
-do not enable live curves until that dependency and attended acceptance pass.
+configuration refuses startup. Do not enable live curves until the driver, PWM,
+curve and attended lifecycle acceptance tickets pass.
 
 ## Build and verification
 
@@ -57,3 +57,24 @@ attended acceptance, and keep unattended startup disabled on failure.
 
 For removal follow `ownership.txt`; retain the driver/helper until final verified Auto.
 Do not remove runtime fault files to force a pass.
+
+## Sleep and resume
+
+All four `systemd-{suspend,hibernate,hybrid-sleep,suspend-then-hibernate}.service`
+engines require the same ordered oneshot. Preparation records prior activity and
+sets a sleep latch before synchronously stopping CoolerControl. Its stop hook can
+acquire the helper lock while the sleep latch prevents competing startup. Preparation
+then verifies the controller is fully stopped and restores/readbacks both Auto modes.
+Any error or existing restoration fault fails the required dependency and blocks sleep.
+Clean unsupported stock/LTS boots with no ownership or fault skip without fan writes.
+
+`StopWhenUnneeded=yes` retires the oneshot when the engine completes or is cancelled.
+`ExecStopPost` also runs after failed preparation: it clears the sleep marker, preserves
+faults, and queues a normal start only after successful preparation of a previously
+active controller. The queue is submitted after unlocking; normal startup rechecks
+identity and fresh selected sensors before control. A failed resume stays stopped/faulted.
+Preparation has a 35-second userspace deadline (25 seconds for synchronous stop),
+below the unit's 40-second start timeout. Finish uses the ordinary eight-second bound.
+These are fixture-validated semantics; all four live sleep/resume paths still require
+attended acceptance. Do not invoke transition commands manually during system sleep,
+or remove the package while a sleep transition is active.
