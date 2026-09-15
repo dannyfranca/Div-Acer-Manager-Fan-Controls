@@ -1,0 +1,22 @@
+pkgname=pt31553-fan-control
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Finite verified firmware Auto restoration for qualified PT315-53 CoolerControl sessions'
+arch=('any')
+license=('GPL-3.0-or-later')
+depends=('python>=3.11' 'systemd' 'coolercontrold=5.0.0-1' 'nvidia-utils')
+backup=('etc/pt31553-fan-control/device.toml')
+source=('session.py' 'device.toml' 'pt31553.conf' 'ownership.txt' 'README.md' 'test_session.py' 'test_unit.py' 'coolercontrold.service')
+sha256sums=('SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP' 'SKIP')
+
+check() {
+    python3 -m unittest discover -s . -v
+}
+
+package() {
+    install -Dm755 session.py "$pkgdir/usr/lib/pt31553-fan-control/session"
+    install -Dm600 device.toml "$pkgdir/etc/pt31553-fan-control/device.toml"
+    install -Dm644 pt31553.conf "$pkgdir/usr/lib/systemd/system/coolercontrold.service.d/pt31553.conf"
+    install -Dm644 ownership.txt "$pkgdir/usr/share/doc/pt31553-fan-control/ownership.txt"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/pt31553-fan-control/README.md"
+}
